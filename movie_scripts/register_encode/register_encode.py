@@ -657,7 +657,11 @@ class RegisterEncode:
     def get_profile(self, filename, channel, program):
         if channel.get('network_id') == 32391:
             return "デフォルト(MX)"
-        if [x for x in program.get('genre') if x.get('major') == 'アニメ・特撮']:
+        if [
+            x for x in program.get('genre') if
+            x.get('major') == 'アニメ・特撮' and x.get('minor') in ['国内アニメ', '海外アニメ']
+        ]:
+
             if channel.get('network_id') == 7 and len(re.findall(r"#[0-9]+", filename)) > 1:
                 return "デフォルト(アニメ-ATX分割)"
             elif re.search(r"#[0-9]+,[0-9]+", filename) is not None:
@@ -670,8 +674,16 @@ class RegisterEncode:
 if __name__ == "__main__":
     for _ts_name, _ts_info, _profile in RegisterEncode().search_ts():
         print(_ts_name, _ts_info.get('channel').get('network_id'), _ts_info.get('program').get('genre'), _profile)
-        subprocess_args = [add_task, "-f", _ts_name, "-ip", "localhost", "-p", "32768", "--priority", "3", "-o",
-                           encoded_dir, "-s", _profile, "--no-move"]
+        subprocess_args = [
+            add_task,
+            "-f", _ts_name,
+            "-ip", "localhost",
+            "-p", "32768",
+            "--priority", "3",
+            "-o", encoded_dir,
+            "-s", _profile,
+            "--no-move"
+        ]
 
         print('[EXEC]', subprocess_args)
         subprocess.run(subprocess_args, capture_output=True)
