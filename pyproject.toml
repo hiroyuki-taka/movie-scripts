@@ -2,7 +2,7 @@
 name = "movie_scripts"
 version = "0.1.0"
 description = ""
-authors = ["taka-hiroyuki <taka.hiroyuk@gmail.com>"]
+authors = []
 readme = "README.md"
 packages = [{ include = "movie_scripts" }]
 
@@ -28,3 +28,4 @@ line-length = 120
 [tool.taskipy.tasks]
 register_encode = "python movie_scripts/register_encode/register_encode.py"
 fix_movie_tags = "python movie_scripts/fix_movie_tags/fix_movie_tags.py"
+rename_succeed_files = "python movie_scripts/rename_succeed_files/rename_succeed_files.py"
