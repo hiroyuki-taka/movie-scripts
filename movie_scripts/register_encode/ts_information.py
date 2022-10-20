@@ -92,10 +92,6 @@ class TsInformation:
         # TOT (Time Offset Table) からおおよその録画開始時刻・録画終了時刻を取得
         # TOT だけだと正確でないので、PCR (Packet Clock Reference) の値で補完する
         record_start_time = self.getRecordStartTime()
-        record_end_time = self.getRecordEndTime()
-
-        # 録画時間を算出
-        record_duration = record_end_time - record_start_time
 
         # 録画開始時刻と次の番組の開始時刻を比較して、差が1分以内（＝録画マージン）なら次の番組情報を利用する
         # 録画マージン分おおまかにシークしてから番組情報を取得しているため、基本的には現在の番組情報を使うことになるはず
@@ -551,58 +547,6 @@ class TsInformation:
 
         # タイムゾーンを日本時間 (+9:00) に設定
         return first_tot.astimezone(timezone(timedelta(hours=9)))
-
-    def getRecordEndTime(self) -> datetime:
-        """
-        TS 内の TOT (Time Offset Table) と PCR (Program Clock Reference) の差分から、おおよその録画終了時刻を算出する
-
-        Returns:
-            datetime: 録画終了時刻の datetime
-        """
-
-        # ファイルの末尾から 188000 (188KB) まで遡ってシーク
-        # だいたい PCR は 9 つ取得できる
-        # 注意!!! シークする際は必ず 188（ TS パケット長）の倍数にすること
-        # そうしないと PCR が狂った値になる（ PCR は TS ヘッダの延長線上 (adaptation field) にあるので、188 の倍数でないとおかしくなるのは当たり前）
-        self.ts.seek(-1880000, 2)
-
-        current_pcr = timedelta(seconds=0)
-
-        # PCR を取得して配列に格納
-        pcrs = []
-        for _ in self.ts:
-            pcr = self.getPCRTimeDelta()
-            if pcr is not None:
-                pcrs.append(pcr)
-
-        # TS 内最後の PCR (Packet Clock Reference)
-        last_pcr: timedelta = pcrs[-1]  # 配列の最後の要素
-
-        # ファイルの末尾から 1880000 (1880KB) まで遡ってシーク
-        self.ts.seek(-18800000, 2)
-
-        # TOT を取得して配列に格納
-        tots = []
-        for tot in self.ts.sections(TimeOffsetSection):
-            tots.append(tot.JST_time)
-            pcr = self.getPCRTimeDelta()
-            if pcr is not None:
-                # 次の TOT 取得直前の PCR (Packet Clock Reference)
-                current_pcr: timedelta = copy(pcr)
-
-        # TS 内最後の TOT (Time Offset Table)
-        current_tot: datetime = tots[-1]  # 配列の最後の要素
-
-        # TOT は 5 秒間隔で送出されているため、そのままでは誤差が生じる
-        # last_pcr と current_pcr の差分で TOT を取得した後 EOF までの時間を推測し、それを current_tot に足すことで、推定録画終了時刻を算出する
-        last_tot: datetime = current_tot + (last_pcr - current_pcr)
-
-        # なぜかここで取得した推定録画終了時刻は実際の時刻より少し速くなっている
-        # 仕方がないので（どうにかできそうだけど）、実測値から一律で0.5秒足す
-        last_tot = last_tot + timedelta(seconds=0.5)
-
-        # タイムゾーンを日本時間 (+9:00) に設定
-        return last_tot.astimezone(timezone(timedelta(hours=9)))
 
     def getPCRTimeDelta(self) -> Optional[timedelta]:
         """
