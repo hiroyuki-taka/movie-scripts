@@ -8,7 +8,7 @@ epg_host = "http://192.168.0.170:8888"
 
 @cache
 def target_channel_info():
-    cancel_target_channel = ('ＢＳアニマックス', 'キッズステーション', 'ＷＯＷＯＷプライム', 'ＷＯＷＯＷプラス')
+    cancel_target_channel = ('ＢＳアニマックス', 'キッズステーション', 'ＴＢＳチャンネル２', 'ＷＯＷＯＷプライム', 'ＷＯＷＯＷプラス')
 
     response = requests.get(f"{epg_host}/api/channels").json()
     return [data for data in response if data.get('name') in cancel_target_channel]

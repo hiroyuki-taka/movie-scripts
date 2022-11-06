@@ -27,11 +27,12 @@ class RegisterEncode:
             x for x in program.get('genre') if
             x.get('major') == 'アニメ・特撮' and x.get('middle') in ['国内アニメ', '海外アニメ']
         ]:
-
             if channel.get('network_id') == 7 and len(re.findall(r"#[0-9]+", filename)) > 1:
                 return "デフォルト(アニメ-ATX分割)"
             elif re.search(r"#[0-9]+,[0-9]+", filename) is not None:
                 return "デフォルト(アニメ-ATX分割)"
+            elif "水星の魔女" in filename:
+                return "デフォルト(アニメ) 810p"
             else:
                 return "デフォルト(アニメ)"
         return "デフォルト(実写)"

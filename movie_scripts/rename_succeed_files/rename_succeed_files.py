@@ -10,8 +10,9 @@ movie_root = "w:\\movie\\temp"
 
 
 class RenameSucceedFiles:
+    @property
     def target_files(self):
-        pattern = re.compile(r"\[無]|\[新]|\[終]")
+        pattern = re.compile(r"\[無]|\[新]|\[終]|\[初]")
 
         for dirname, _, files in os.walk(top=movie_root):
             for file in files:
@@ -20,6 +21,6 @@ class RenameSucceedFiles:
 
 
 if __name__ == "__main__":
-    for _dirname, _file, _newname in RenameSucceedFiles().target_files():
+    for _dirname, _file, _newname in RenameSucceedFiles().target_files:
         print(f"[RENAME] {_dirname}\n  {_file} -> {_newname}")
         os.rename(os.path.join(_dirname, _file), os.path.join(_dirname, _newname))

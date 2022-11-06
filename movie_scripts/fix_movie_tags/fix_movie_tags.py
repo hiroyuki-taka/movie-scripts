@@ -22,13 +22,18 @@ class FixMovieTags:
             if fileobj.size < 10 * 1024 * 1024 or fileobj.storage_class == "GLACIER":
                 continue
 
-            tags: list[dict[str, str]] = s3_client.get_object_tagging(Bucket=fileobj.Bucket().name, Key=fileobj.key).get("TagSet", [])
+            bucket_name = fileobj.Bucket().name
+            file_key = fileobj.key
+
+            tags: list[dict[str, str]] = s3_client.get_object_tagging(
+                Bucket=bucket_name, Key=file_key
+            ).get("TagSet", [])
             object_types: list[str] = [x['Value'] for x in tags if x['Key'] == 'object-type']
 
             if not object_types:
                 tags.append({'Key': 'object-type', 'Value': 'movie'})
-                s3_client.put_object_tagging(Bucket=fileobj.Bucket().name, Key=fileobj.key, Tagging={"TagSet": tags})
-                print(f"[INFO] tagを更新します key={fileobj.key}, tags={tags}")
+                s3_client.put_object_tagging(Bucket=bucket_name, Key=file_key, Tagging={"TagSet": tags})
+                print(f"[INFO] tagを更新します key={file_key}, tags={tags}")
 
 
 if __name__ == '__main__':
