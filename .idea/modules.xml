@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/register_encode_py.iml" filepath="$PROJECT_DIR$/.idea/register_encode_py.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/movie-scripts.iml" filepath="$PROJECT_DIR$/.idea/movie-scripts.iml" />
     </modules>
   </component>
 </project>

@@ -18,10 +18,14 @@ def target_channel_info():
 def reserves() -> list[int]:
     response = requests.get(f"{epg_host}/api/reserves/all").json()
     id_list: list[int] = []
-    for p in response.get('reserves', []):
-        id_list.append(p.get('programId'))
-    for p in response.get('conflicts', []):
-        id_list.append(p.get('programId'))
+
+    if "reserves" in response:
+        for r in response["reserves"]:
+            id_list.append(r.get("programId"))
+
+    if "conflicts" in response:
+        for r in response["conflicts"]:
+            id_list.append(r.get("programId"))
 
     return id_list
 
@@ -41,9 +45,11 @@ if __name__ == "__main__":
 
     for _channel_info in target_channel_info():
         _channel_id = _channel_info.get('id')
+        _channel_name = _channel_info.get('name')
 
         for day_schedule in schedule(channel_id=_channel_id):
             for _program in day_schedule.get('programs'):
-                if _program.get('id') in _reserves and _program.get('isFree') is False:
-                    cancel(_program.get('id'))
-                    print(f"{_channel_info.get('name')}:{_program.get('name')} - 予約をキャンセルしました。")
+                match _program:
+                    case {"id": _program_id, "name": _program_name, "isFree": False} if _program_id in _reserves:
+                        cancel(_program_id)
+                        print(f"{_channel_name}:{_program_name} - 予約をキャンセルしました。")

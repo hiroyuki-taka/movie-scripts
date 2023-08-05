@@ -11,7 +11,6 @@ class FixMovieTags:
     def __init__(self):
         self.bucket_name = "movie-backup-538347644889"
         self.bucket = s3_resource.Bucket(self.bucket_name)
-        self.bucketTagging = s3_resource.BucketTagging(self.bucket_name)
 
     def s3_file_list(self) -> Iterable[ObjectSummary]:
         for fileobj in self.bucket.objects.all():

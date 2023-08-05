@@ -31,7 +31,7 @@ class RegisterEncode:
                 return "デフォルト(アニメ-ATX分割)"
             elif re.search(r"#[0-9]+,[0-9]+", filename) is not None:
                 return "デフォルト(アニメ-ATX分割)"
-            elif "水星の魔女" in filename:
+            elif "水星の魔女" in filename or "推しの子" in filename or "青春ブタ野郎" in filename:
                 return "デフォルト(アニメ) 810p"
             else:
                 return "デフォルト(アニメ)"
