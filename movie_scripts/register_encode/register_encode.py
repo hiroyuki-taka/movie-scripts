@@ -38,7 +38,7 @@ class RegisterEncode:
         return "デフォルト(実写)"
 
 
-if __name__ == "__main__":
+def run():
     for _ts_name, _ts_info, _profile in RegisterEncode().search_ts():
         print(_ts_name, _ts_info.get('channel').get('network_id'), _ts_info.get('program').get('genre'), _profile)
         subprocess_args = [
@@ -54,3 +54,6 @@ if __name__ == "__main__":
 
         print('[EXEC]', subprocess_args)
         subprocess.run(subprocess_args, capture_output=True)
+
+if __name__ == "__main__":
+    run()

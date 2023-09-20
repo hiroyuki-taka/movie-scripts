@@ -6,7 +6,7 @@ import re
 ソートの邪魔になるテキストを消去
 """
 
-movie_root = [r"w:\movie\temp\succeed", r"W:\movie\20123Q 岩合光昭の世界ネコ歩き", r"W:\movie_temp\encoded\ドラマ"]
+movie_root = [r"w:\movie\temp\succeeded", r"W:\movie\20123Q 岩合光昭の世界ネコ歩き"]
 
 
 class RenameSucceedFiles:
@@ -25,8 +25,11 @@ class RenameSucceedFiles:
                         yield dirname, file, re.sub(pattern, "", file)
                         continue
 
-
-if __name__ == "__main__":
+def run():
     for _dirname, _file, _newname in RenameSucceedFiles().target_files:
         print(f"[RENAME] {_dirname}\n  {_file} -> {_newname}")
         os.rename(os.path.join(_dirname, _file), os.path.join(_dirname, _newname))
+
+
+if __name__ == "__main__":
+    run()

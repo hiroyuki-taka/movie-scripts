@@ -18,6 +18,10 @@ def encoded_files():
             yield os.path.join(dirname, filename)
 
 
-if __name__ == "__main__":
+def run():
     for c, _filename in enumerate(log_file_list()):
         print(f"{c}: {_filename}")
+
+
+if __name__ == "__main__":
+    run()

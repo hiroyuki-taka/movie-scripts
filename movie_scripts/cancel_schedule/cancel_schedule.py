@@ -38,8 +38,7 @@ def schedule(channel_id: int, days: int = 8):
 def cancel(program_id):
     return requests.delete(f"{epg_host}/api/reserves/{program_id}")
 
-
-if __name__ == "__main__":
+def run():
     # 予約リスト
     _reserves = reserves()
 
@@ -53,3 +52,6 @@ if __name__ == "__main__":
                     case {"id": _program_id, "name": _program_name, "isFree": False} if _program_id in _reserves:
                         cancel(_program_id)
                         print(f"{_channel_name}:{_program_name} - 予約をキャンセルしました。")
+
+if __name__ == "__main__":
+    run()

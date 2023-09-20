@@ -31,3 +31,9 @@ register_encode = "python movie_scripts/register_encode/register_encode.py"
 fix_movie_tags = "python movie_scripts/fix_movie_tags/fix_movie_tags.py"
 rename_succeed_files = "python movie_scripts/rename_succeed_files/rename_succeed_files.py"
 cancel_schedule = "python movie_scripts/cancel_schedule/cancel_schedule.py"
+
+[tool.poetry.scripts]
+register_encode = "movie_scripts.register_encode.register_encode:run"
+fix_movie_tags = "movie_scripts.fix_movie_tags.fix_movie_tags:run"
+rename_succeed_files = "movie_scripts.rename_succeed_files.rename_succeed_files:run"
+cancel_schedule = "movie_scripts.cancel_schedule.cancel_schedule:run"

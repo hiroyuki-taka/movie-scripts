@@ -34,6 +34,9 @@ class FixMovieTags:
                 s3_client.put_object_tagging(Bucket=bucket_name, Key=file_key, Tagging={"TagSet": tags})
                 print(f"[INFO] tagを更新します key={file_key}, tags={tags}")
 
+def run():
+    FixMovieTags().fix_movie_tags()
+
 
 if __name__ == '__main__':
-    FixMovieTags().fix_movie_tags()
+    run()
