@@ -1,8 +1,9 @@
 import logging
 import re
+import subprocess
 import sys
 from os.path import expanduser
-from pathlib import Path, WindowsPath
+from pathlib import Path
 from typing import Iterator
 
 from movie_scripts.register_encode.ts_information import TsInformation
@@ -30,8 +31,8 @@ class RegisterEncode:
     def search_ts(self) -> Iterator[tuple[Path, Path, dict, str]]:
         for search_dir, in_dir, out_dir in dir_pairs:
             search_root = Path(search_dir)
-            movie_root = WindowsPath(in_dir)
-            output_base = WindowsPath(out_dir)
+            movie_root = Path(in_dir)
+            output_base = Path(out_dir)
 
             for file in search_root.glob("**/*.ts"):
                 if file.parent.name in ["succeeded", "failed", "out"]:
@@ -72,15 +73,6 @@ class RegisterEncode:
 
 def run():
     for _ts_name, _out_dir, _ts_info, _profile in RegisterEncode().search_ts():
-        logger.info(
-            "Running register encode...",
-            extra={
-                "Ts Name": str(_ts_name),
-                "Output Directory": str(_out_dir),
-                "TS Info": _ts_info,
-                "Profile": _profile,
-            },
-        )
         subprocess_args = []
         if use_mono:
             subprocess_args.append("mono")
@@ -105,7 +97,7 @@ def run():
         )
 
         print(subprocess_args)
-        # subprocess.run(subprocess_args, capture_output=True)
+        subprocess.run(subprocess_args, capture_output=True)
 
 
 if __name__ == "__main__":
