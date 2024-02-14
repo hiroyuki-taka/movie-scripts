@@ -48,8 +48,8 @@ def schedule(channel_id: int, days: int = 8):
     }
 
 
-def cancel(program_id):
-    return requests.delete(f"{epg_host}/api/reserves/{program_id}")
+def cancel(reserve_id):
+    return requests.delete(f"{epg_host}/api/reserves/{reserve_id}")
 
 
 def run():
@@ -58,10 +58,10 @@ def run():
     for program in reserves():
         channel_id = program.get("channelId")
         program_id = program.get("programId")
-        if channel_id in cancel_target_channels:
+        if program.get("isSkip") is not True and channel_id in cancel_target_channels:
             s = schedule(channel_id=channel_id).get(program_id)
             if s and s.get("isFree") is False:
-                cancel(program_id)
+                cancel(program.get("id"))
                 print(f"{cancel_target_channels[channel_id]}:{s.get('name')} - 予約をキャンセルしました。")
 
 
