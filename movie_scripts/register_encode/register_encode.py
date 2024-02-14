@@ -1,33 +1,65 @@
-import os
+import logging
 import re
-import subprocess
+import sys
+from os.path import expanduser
+from pathlib import Path, WindowsPath
+from typing import Iterator
 
 from movie_scripts.register_encode.ts_information import TsInformation
 
-movie_root = "w:\\movie\\temp"
-encoded_dir = "w:\\movie_temp\\encoded"
-add_task = f"{os.environ.get('HOMEDRIVE')}{os.environ.get('HOMEPATH')}/bin/Amatsukaze/exe_files/AmatsukazeAddTask.exe"
+dir_pairs = [
+    ("w:\\movie\\temp", "w:\\movie\\temp", "w:\\movie\\temp\\encoded"),
+    ("v:\\movie_recorded", "v:\\movie_recorded", "v:\\movie_recorded\\out"),
+    ("/srv/movie_recorded", "v:\\movie_recorded", "v:\\movie_recorded\\out"),
+]
+
+match sys.platform:
+    case str() as uname if uname.startswith("linux"):
+        amatsukaze_root = f"{expanduser('~')}/.local/Amatsukaze"
+        use_mono = True
+    case _:
+        amatsukaze_root = f"{expanduser('~')}\\bin\\Amatsukaze"
+        use_mono = False
+
+
+logger = logging.getLogger("register_encode")
+logger.setLevel(logging.INFO)
 
 
 class RegisterEncode:
-    def search_ts(self):
-        for dirname, _, files in os.walk(top=movie_root):
-            for file in files:
-                if dirname.endswith("succeeded") or dirname.endswith("failed") or not file.endswith(".ts"):
+    def search_ts(self) -> Iterator[tuple[Path, Path, dict, str]]:
+        for search_dir, in_dir, out_dir in dir_pairs:
+            search_root = Path(search_dir)
+            movie_root = WindowsPath(in_dir)
+            output_base = WindowsPath(out_dir)
+
+            for file in search_root.glob("**/*.ts"):
+                if file.parent.name in ["succeeded", "failed", "out"]:
                     continue
 
-                file_path = os.path.join(dirname, file)
-                ts_info = TsInformation(file_path).extract()
-                yield file_path, ts_info, self.get_profile(file_path, ts_info.get('channel'), ts_info.get('program'))
+                try:
+                    ts_info = TsInformation(str(file)).extract()
+                    title = ts_info.get("program", {}).get("title", "")
 
-    def get_profile(self, filename, channel, program):
-        if channel.get('network_id') == 32391:
+                    print("origin: {}".format(title))
+
+                    rel = file.relative_to(search_root)
+                    win_path = movie_root.joinpath(rel)
+
+                    yield win_path, output_base, ts_info, self.get_profile(
+                        file, ts_info.get("channel"), ts_info.get("program")
+                    )
+                except IndexError:
+                    print("エラーが発生しました。スキップします: {}".format(str(file)))
+
+    def get_profile(self, file: Path, channel: dict, program: dict):
+        network_id = channel.get("network_id", 0)
+        filename = file.name
+
+        if network_id == 32391:
             return "デフォルト(MX)"
-        if [
-            x for x in program.get('genre') if
-            x.get('major') == 'アニメ・特撮' and x.get('middle') in ['国内アニメ', '海外アニメ']
-        ]:
-            if channel.get('network_id') == 7 and len(re.findall(r"#[0-9]+", filename)) > 1:
+        if [x for x in program.get("genre") if x.get("major") == "アニメ・特撮" and x.get("middle") in ["国内アニメ", "海外アニメ"]]:
+            if network_id == 7 and len(re.findall(r"#[0-9]+", filename)) > 1:
                 return "デフォルト(アニメ-ATX分割)"
             elif re.search(r"#[0-9]+,[0-9]+", filename) is not None:
                 return "デフォルト(アニメ-ATX分割)"
@@ -39,21 +71,42 @@ class RegisterEncode:
 
 
 def run():
-    for _ts_name, _ts_info, _profile in RegisterEncode().search_ts():
-        print(_ts_name, _ts_info.get('channel').get('network_id'), _ts_info.get('program').get('genre'), _profile)
-        subprocess_args = [
-            add_task,
-            "-f", _ts_name,
-            "-ip", "localhost",
-            "-p", "32768",
-            "--priority", "3",
-            "-o", encoded_dir,
-            "-s", _profile,
-            "--no-move"
-        ]
+    for _ts_name, _out_dir, _ts_info, _profile in RegisterEncode().search_ts():
+        logger.info(
+            "Running register encode...",
+            extra={
+                "Ts Name": str(_ts_name),
+                "Output Directory": str(_out_dir),
+                "TS Info": _ts_info,
+                "Profile": _profile,
+            },
+        )
+        subprocess_args = []
+        if use_mono:
+            subprocess_args.append("mono")
 
-        print('[EXEC]', subprocess_args)
-        subprocess.run(subprocess_args, capture_output=True)
+        subprocess_args.extend(
+            [
+                str(Path(amatsukaze_root).joinpath("exe_files", "AmatsukazeAddTask.exe")),
+                "-f",
+                str(_ts_name),
+                "-ip",
+                "192.168.0.166",
+                "-p",
+                "32768",
+                "--priority",
+                "3",
+                "-o",
+                str(_out_dir),
+                "-s",
+                _profile,
+                "--no-move",
+            ]
+        )
+
+        print(subprocess_args)
+        # subprocess.run(subprocess_args, capture_output=True)
+
 
 if __name__ == "__main__":
     run()

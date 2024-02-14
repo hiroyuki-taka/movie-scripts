@@ -149,7 +149,6 @@ class TsInformation:
 
         # TS から SDT (Service Description Table) を抽出
         for sdt in self.ts.sections(ActualStreamServiceDescriptionSection):
-
             # ネットワーク ID を取得
             result['network_id'] = sdt.original_network_id
 
