@@ -1,7 +1,8 @@
+import asyncio
 import logging
 import re
-import subprocess
 import sys
+from datetime import datetime, timedelta
 from os.path import expanduser
 from pathlib import Path
 from typing import Iterator
@@ -22,7 +23,6 @@ match sys.platform:
         amatsukaze_root = f"{expanduser('~')}\\bin\\Amatsukaze"
         use_mono = False
 
-
 logger = logging.getLogger("register_encode")
 logger.setLevel(logging.INFO)
 
@@ -36,6 +36,11 @@ class RegisterEncode:
 
             for file in search_root.glob("**/*.ts"):
                 if file.parent.name in ["succeeded", "failed", "out"]:
+                    continue
+
+                mtime = datetime.fromtimestamp(file.stat().st_mtime)
+                if datetime.now() - mtime < timedelta(minutes=30):
+                    # 30分以内に更新されたファイルはスキップ(録画中かも)
                     continue
 
                 try:
@@ -64,41 +69,52 @@ class RegisterEncode:
                 return "デフォルト(アニメ-ATX分割)"
             elif re.search(r"#[0-9]+,[0-9]+", filename) is not None:
                 return "デフォルト(アニメ-ATX分割)"
-            elif "水星の魔女" in filename or "推しの子" in filename or "青春ブタ野郎" in filename:
+            elif (
+                "水星の魔女" in filename or "推しの子" in filename or "青春ブタ野郎" in filename or channel.get("channel_type") == "BS"
+            ):
                 return "デフォルト(アニメ) 810p"
             else:
                 return "デフォルト(アニメ)"
         return "デフォルト(実写)"
 
 
-def run():
+async def run():
+    proc_list = []
     for _ts_name, _out_dir, _ts_info, _profile in RegisterEncode().search_ts():
-        subprocess_args = []
-        if use_mono:
-            subprocess_args.append("mono")
+        proc_list.append(start_subprocess(use_mono=use_mono, file=_ts_name, out_dir=_out_dir, profile=_profile))
 
-        subprocess_args.extend(
-            [
-                str(Path(amatsukaze_root).joinpath("exe_files", "AmatsukazeAddTask.exe")),
-                "-f",
-                str(_ts_name),
-                "-ip",
-                "192.168.0.166",
-                "-p",
-                "32768",
-                "--priority",
-                "3",
-                "-o",
-                str(_out_dir),
-                "-s",
-                _profile,
-                "--no-move",
-            ]
-        )
+    await asyncio.gather(*proc_list)
 
-        print(subprocess_args)
-        subprocess.run(subprocess_args, capture_output=True)
+
+async def start_subprocess(use_mono: bool, file: Path, out_dir: Path, profile: str):
+    cmd = []
+    if use_mono:
+        cmd.append("mono")
+    cmd.extend(
+        [
+            str(Path(amatsukaze_root).joinpath("exe_files", "AmatsukazeAddTask.exe")),
+            "-f",
+            str(file),
+            "-ip",
+            "192.168.0.166",
+            "-p",
+            "32768",
+            "--priority",
+            "3",
+            "-o",
+            str(out_dir),
+            "-s",
+            profile,
+            "--no-move",
+        ]
+    )
+    proc = await asyncio.create_subprocess_exec(
+        cmd[0], *cmd[1:], stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+    )
+    stdout, stderr = await proc.communicate()
+
+    print(cmd)
 
 
 if __name__ == "__main__":
-    run()
+    asyncio.run(run())

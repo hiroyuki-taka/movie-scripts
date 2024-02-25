@@ -46,7 +46,7 @@ def find_related_file(path: pathlib.Path, basename: str):
     }
 
 
-def run():
+async def run():
     _filename: ParsedFileName
     for c, _filename in enumerate(log_file_list()):
         print(f"{c}: {_filename.get('path').parent}, {_filename.get('basename')}")
