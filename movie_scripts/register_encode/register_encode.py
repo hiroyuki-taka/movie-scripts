@@ -78,7 +78,11 @@ class RegisterEncode:
         return "デフォルト(実写)"
 
 
-async def run():
+def run():
+    asyncio.run(_run())
+
+
+async def _run():
     proc_list = []
     for _ts_name, _out_dir, _ts_info, _profile in RegisterEncode().search_ts():
         proc_list.append(start_subprocess(use_mono=use_mono, file=_ts_name, out_dir=_out_dir, profile=_profile))
@@ -117,4 +121,4 @@ async def start_subprocess(use_mono: bool, file: Path, out_dir: Path, profile: s
 
 
 if __name__ == "__main__":
-    asyncio.run(run())
+    asyncio.run(_run())
