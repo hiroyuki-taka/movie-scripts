@@ -1119,6 +1119,44 @@ files = [
 test = ["enum34", "ipaddress", "mock", "pywin32", "wmi"]
 
 [[package]]
+name = "pyav"
+version = "12.0.4"
+description = "Pythonic bindings for FFmpeg's libraries."
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "pyav-12.0.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:fafef76608beef17b2fbc909558d65fbf8a587641bd3495495e3c77f632702d6"},
+    {file = "pyav-12.0.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b84ce134ba1ee8e73348c83e9abf911558b1b3689c5df1b6cbbe705e4f01c425"},
+    {file = "pyav-12.0.4-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:9b187055d9c1c86d4e056c070f376dc57a84f8849d8d4f7eda5a6ca99ee5d651"},
+    {file = "pyav-12.0.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:eee58dc38007a4ed439038cdb506bf2a94dda427a596079b1f775792ba0a7877"},
+    {file = "pyav-12.0.4-cp310-cp310-win_amd64.whl", hash = "sha256:70e80b111addd446f42df7973dad55f3b7a0aec79b1fc1bdfc7688c47337e74f"},
+    {file = "pyav-12.0.4-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:5d0e8a2265e3c04a0fe1a7b58e03a49cb280c8295f450423bec8b955370fd1f2"},
+    {file = "pyav-12.0.4-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:70b360d2c9116df6a1ab1a3f24b51f06926e430c48a3de9d40274617c4e4d666"},
+    {file = "pyav-12.0.4-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:0bd1661db3e0743ab3d38bfe478ef48b5173cf5be164bca7046afd3cae058c8c"},
+    {file = "pyav-12.0.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:449ecc8d36bf3654c69969d556a7360f561748a113de4344d2d88d9bd0b01380"},
+    {file = "pyav-12.0.4-cp311-cp311-win_amd64.whl", hash = "sha256:29f652a93cb7e8059f0042e20b9296f8cdd16d0d9bd1b4b0ede5b82cb5006ba2"},
+    {file = "pyav-12.0.4-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:f22f4073af2c073dec18373409dfdad8e13145bdde28f2144a50456ee51abc7c"},
+    {file = "pyav-12.0.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:30e6605027f9549455a2586d4bea223fd130d94605e36ae477887caf1f66aace"},
+    {file = "pyav-12.0.4-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:33f38a17403de6a99f6b3372569b5dcdb664e06cccd17268b720d909a8deb6ad"},
+    {file = "pyav-12.0.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fc1a2accdb2a5ca3e76962687911adc4016c00bcca23af350650d68008f19fac"},
+    {file = "pyav-12.0.4-cp312-cp312-win_amd64.whl", hash = "sha256:b6aee56e751e2739625f53643d47e861200172132176ad50393c1ae88b45bf58"},
+    {file = "pyav-12.0.4-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:e06ef6fda8ebef13da5d046a16fafdbef1a3b6f8a235e49fbaaefb17b1e0fac0"},
+    {file = "pyav-12.0.4-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:f89d5cb064d8ef9e2205a5602e2d667f9702180230bd4495993d83c3162307ab"},
+    {file = "pyav-12.0.4-cp39-cp39-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5045e661523a61bf1ec16cd7e054803698a32f984af71c50f235c3d8d20d2f22"},
+    {file = "pyav-12.0.4-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2b524a8d92ee8fbb8a2ec412129d02cc7366c6d3ffe476e1930cf6b8a2525e36"},
+    {file = "pyav-12.0.4-cp39-cp39-win_amd64.whl", hash = "sha256:f517cd84cbae18e750320a25efe95a54d821d64f4f04794da25d2a65d8524764"},
+    {file = "pyav-12.0.4-pp310-pypy310_pp73-macosx_10_9_x86_64.whl", hash = "sha256:91875fb1fa884545231e82319d4ae16f6a7d890778a5233ef8db29207761aa43"},
+    {file = "pyav-12.0.4-pp310-pypy310_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:560cb99857e8100bfe09259cbb892e653c58affe6e0f4ca466ee1ba289142179"},
+    {file = "pyav-12.0.4-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d267a4f0a60e0ad526c4336ac19862b3b860739a9f8b773742b6ca0ee11f7987"},
+    {file = "pyav-12.0.4-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:d24cc204148c50189d490c16f1cca1886988c91023fca691dd25a0b0f594c68d"},
+    {file = "pyav-12.0.4-pp39-pypy39_pp73-macosx_10_9_x86_64.whl", hash = "sha256:7d018c5953d17bd4aaf86d5e1ecd8e1bbcb33ae8aae9d09c42dabf0b22a19933"},
+    {file = "pyav-12.0.4-pp39-pypy39_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b91fd0155ba3f612b8fdd040978fdb81f980aafdb519c81d54db6369b50e2c0c"},
+    {file = "pyav-12.0.4-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ecf60bbf3d80d8f8e7a5287eb2ec0e9c1797c77577df75b00d6ece58614adc51"},
+    {file = "pyav-12.0.4-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:f68d5d5aaf18602830912df94358473ae0626620a92bd7d9df11d1fc7759d93f"},
+    {file = "pyav-12.0.4.tar.gz", hash = "sha256:e956a49b07621cdeb37d4c5cbece07399d23938f5c20498e892e886430f76699"},
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.8.2"
 description = "Extensions to the standard Python datetime module"
@@ -1365,4 +1403,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "d86d6f4528dd609ddd44ed3ecaf6c5603eb9effc4d94b2f455924e2e600ce1f7"
+content-hash = "912abe586a9b609bdbcbc3a05191edb72ff8623765e298fd4ebbd437c0887f03"

@@ -10,61 +10,74 @@ from ariblib import TransportStreamFile
 from ariblib.aribstr import AribString
 from ariblib.descriptors import ServiceDescriptor, TSInformationDescriptor
 from ariblib.packet import adaptation_field
-from ariblib.sections import ProgramAssociationSection, ActualStreamServiceDescriptionSection, \
-    NetworkInformationSection, ActualStreamPresentFollowingEventInformationSection, TimeOffsetSection
+from ariblib.sections import (
+    ProgramAssociationSection,
+    ActualStreamServiceDescriptionSection,
+    NetworkInformationSection,
+    ActualStreamPresentFollowingEventInformationSection,
+    TimeOffsetSection,
+)
 
 
 ## https://gist.github.com/tsukumijima/48cc26595bc2b05debdba2a655068696
+
 
 class TsInformation:
     # 映像のコーデック
     # 参考: https://github.com/Chinachu/Mirakurun/blob/master/src/Mirakurun/epg.ts#L27
     STREAM_CONTENT = {
-        0x01: 'mpeg2',
-        0x05: 'h.264',
-        0x09: 'h.265',
+        0x01: "mpeg2",
+        0x05: "h.264",
+        0x09: "h.265",
     }
 
     # 映像の解像度
     # 参考: https://github.com/Chinachu/Mirakurun/blob/master/src/Mirakurun/epg.ts#L33
     COMPONENT_TYPE = {
-        0x01: '480i',
-        0x02: '480i',
-        0x03: '480i',
-        0x04: '480i',
-        0x83: '4320p',
-        0x91: '2160p',
-        0x92: '2160p',
-        0x93: '2160p',
-        0x94: '2160p',
-        0xA1: '480p',
-        0xA2: '480p',
-        0xA3: '480p',
-        0xA4: '480p',
-        0xB1: '1080i',
-        0xB2: '1080i',
-        0xB3: '1080i',
-        0xB4: '1080i',
-        0xC1: '720p',
-        0xC2: '720p',
-        0xC3: '720p',
-        0xC4: '720p',
-        0xD1: '240p',
-        0xD2: '240p',
-        0xD3: '240p',
-        0xD4: '240p',
-        0xE1: '1080p',
-        0xE2: '1080p',
-        0xE3: '1080p',
-        0xE4: '1080p',
-        0xF1: '180p',
-        0xF2: '180p',
-        0xF3: '180p',
-        0xF4: '180p',
+        0x01: "480i",
+        0x02: "480i",
+        0x03: "480i",
+        0x04: "480i",
+        0x83: "4320p",
+        0x91: "2160p",
+        0x92: "2160p",
+        0x93: "2160p",
+        0x94: "2160p",
+        0xA1: "480p",
+        0xA2: "480p",
+        0xA3: "480p",
+        0xA4: "480p",
+        0xB1: "1080i(b1)",
+        0xB2: "1080i(b2)",
+        0xB3: "1080i(b3)",
+        0xB4: "1080i(b4)",
+        0xC1: "720p",
+        0xC2: "720p",
+        0xC3: "720p",
+        0xC4: "720p",
+        0xD1: "240p",
+        0xD2: "240p",
+        0xD3: "240p",
+        0xD4: "240p",
+        0xE1: "1080p(e1)",
+        0xE2: "1080p(e2)",
+        0xE3: "1080p(e3)",
+        0xE4: "1080p(e4)",
+        0xF1: "180p",
+        0xF2: "180p",
+        0xF3: "180p",
+        0xF4: "180p",
     }
 
     def __init__(self, filename: str):
         self.ts: TransportStreamFile = ariblib.tsopen(filename, chunk=1000)
+
+    def __enter__(self):
+        return self.extract()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.ts.close()
+        return False
 
     def extract(self) -> dict:
         """
@@ -79,15 +92,12 @@ class TsInformation:
 
         # EIT (Event Information Table) から現在と次の番組情報を取得
         # 「現在」は録画開始時点のものなので、録画マージンがある場合基本的には eit_present には前の番組の情報が入る
-        eit_present = self.getEITInformation(sdt['service_id'], 0)
+        eit_present = self.getEITInformation(sdt["service_id"], 0)
         try:
-            eit_following = self.getEITInformation(sdt['service_id'], 1)
+            eit_following = self.getEITInformation(sdt["service_id"], 1)
         except Exception as e:
-            print('[ERROR]', e)
-            return {
-                'channel': sdt,
-                'program': eit_present
-            }
+            print("[ERROR]", e)
+            return {"channel": sdt, "program": eit_present}
 
         # TOT (Time Offset Table) からおおよその録画開始時刻・録画終了時刻を取得
         # TOT だけだと正確でないので、PCR (Packet Clock Reference) の値で補完する
@@ -95,7 +105,7 @@ class TsInformation:
 
         # 録画開始時刻と次の番組の開始時刻を比較して、差が1分以内（＝録画マージン）なら次の番組情報を利用する
         # 録画マージン分おおまかにシークしてから番組情報を取得しているため、基本的には現在の番組情報を使うことになるはず
-        if eit_following['start_time'] is not None and eit_following['start_time'] - record_start_time <= timedelta(
+        if eit_following["start_time"] is not None and eit_following["start_time"] - record_start_time <= timedelta(
             minutes=1
         ):
             eit = copy(eit_following)
@@ -103,8 +113,8 @@ class TsInformation:
             eit = copy(eit_present)
 
         return {
-            'channel': sdt,
-            'program': eit,
+            "channel": sdt,
+            "program": eit,
         }
 
     def getSDTInformation(self) -> dict:
@@ -118,15 +128,15 @@ class TsInformation:
 
         # 雛形
         result = {
-            'id': None,
-            'network_id': None,
-            'service_id': None,
-            'transport_stream_id': None,
-            'remocon_id': None,
-            'channel_name': None,
-            'channel_ts_name': None,
-            'channel_type': None,
-            'channel_service_type': None,
+            "id": None,
+            "network_id": None,
+            "service_id": None,
+            "transport_stream_id": None,
+            "remocon_id": None,
+            "channel_name": None,
+            "channel_ts_name": None,
+            "channel_type": None,
+            "channel_service_type": None,
         }
 
         # 誤動作防止のため必ず最初にシークを戻す
@@ -136,41 +146,43 @@ class TsInformation:
         pat = next(self.ts.sections(ProgramAssociationSection))
 
         # トランスポートストリーム ID を取得
-        result['transport_stream_id'] = pat.transport_stream_id
+        result["transport_stream_id"] = pat.transport_stream_id
 
         # ネットワーク ID を取得
         for pid in pat.pids:
             if pid.program_number:
                 # だいぶ罠だったのだが、program_number は service_id と等しい
                 # つまり、PAT から抽出した service_id を使えば映像や音声が存在するストリームの番組情報を的確に抽出できる
-                result['service_id'] = pid.program_number
+                result["service_id"] = pid.program_number
                 # 他にも pid があるかもしれないが（複数のチャンネルが同じストリームに含まれている場合など）、最初の pid のみを使うので break
                 break
 
         # TS から SDT (Service Description Table) を抽出
         for sdt in self.ts.sections(ActualStreamServiceDescriptionSection):
             # ネットワーク ID を取得
-            result['network_id'] = sdt.original_network_id
+            result["network_id"] = sdt.original_network_id
 
             # ネットワーク種別を取得
-            result['channel_type'] = self.getNetworkType(result['network_id'])
+            result["channel_type"] = self.getNetworkType(result["network_id"])
 
             # サービスごとに
             for service in sdt.services:
+                print(f"{service.service_id} ==? {result['service_id']}")
                 # service_id が PAT から抽出したものと一致した場合のみ
                 # CS の場合同じ TS の中に複数のチャンネルが含まれている事があり、録画する場合は基本的に他のチャンネルは削除される
                 # そうすると ffprobe で確認できるがサービス情報や番組情報だけ残ってしまい、別のチャンネルの番組情報になるケースがある
                 # PAT にはそうした削除済みのチャンネルは含まれていないので、正しいチャンネルの service_id を抽出できる
-                if service.service_id == result['service_id']:
-
+                if service.service_id == result["service_id"]:
                     # SDT から得られる ServiceDescriptor 内の情報（サービスタイプ・サービス名）を取得
                     for sd in service.descriptors[ServiceDescriptor]:
-                        result['channel_service_type'] = ariblib.constants.SERVICE_TYPE[int(hex(sd.service_type), 16)]
-                        result['channel_name'] = self.formatString(sd.service_name)
+                        result["channel_service_type"] = ariblib.constants.SERVICE_TYPE[int(hex(sd.service_type), 16)]
+                        result["channel_name"] = self.formatString(sd.service_name)
                         break
                     else:
                         continue
                     break
+                else:
+                    print("skip")
             else:
                 continue
             break
@@ -182,8 +194,8 @@ class TsInformation:
                 # NIT から得られる TSInformationDescriptor 内の情報（リモコンキー ID）を取得
                 # 地デジのみで、BS には ServiceDescriptor 自体が存在しない
                 for ts_information in transport_stream.descriptors.get(TSInformationDescriptor, []):
-                    result['remocon_id'] = ts_information.remote_control_key_id
-                    result['channel_ts_name'] = self.formatString(ts_information.ts_name_char)
+                    result["remocon_id"] = ts_information.remote_control_key_id
+                    result["channel_ts_name"] = self.formatString(ts_information.ts_name_char)
                     break
                 break
             else:
@@ -191,7 +203,7 @@ class TsInformation:
             break
 
         # ID を設定
-        result['id'] = f'NID{result["network_id"]}-SID{result["service_id"]:03d}'
+        result["id"] = f'NID{result["network_id"]}-SID{result["service_id"]:03d}'
 
         return result
 
@@ -211,18 +223,23 @@ class TsInformation:
 
         # 雛形
         result = {
-            'id': None,
-            'network_id': None,
-            'service_id': None,
-            'event_id': None,
-            'title': None,
-            'description': None,
-            'detail': None,
-            'start_time': None,
-            'end_time': None,
-            'duration': None,
-            'is_free': None,
-            'genre': None,
+            "id": None,
+            "network_id": None,
+            "service_id": None,
+            "event_id": None,
+            "title": None,
+            "description": None,
+            "detail": None,
+            "start_time": None,
+            "end_time": None,
+            "duration": None,
+            "is_free": None,
+            "genre": None,
+            "video": {
+                "type": None,
+                "codec": None,
+                "resolution": None,
+            },
         }
 
         # 誤動作防止のため必ず最初にシークを戻す
@@ -245,88 +262,86 @@ class TsInformation:
                     # 直接取得した文字列は AribSting になっているので、明示的に str 型にキャストする
 
                     ## ネットワーク ID・サービス ID・イベント ID
-                    if hasattr(event, 'event_id'):
-                        result['id'] = f'NID{event.original_network_id}-SID{event.service_id}-EID{event.event_id}'
-                        result['network_id'] = event.original_network_id
-                        result['service_id'] = event.service_id
-                        result['event_id'] = event.event_id
+                    if hasattr(event, "event_id"):
+                        result["id"] = f"NID{event.original_network_id}-SID{event.service_id}-EID{event.event_id}"
+                        result["network_id"] = event.original_network_id
+                        result["service_id"] = event.service_id
+                        result["event_id"] = event.event_id
 
                     ## 番組名
-                    if hasattr(event, 'title'):
-                        result['title'] = self.formatString(event.title)
+                    if hasattr(event, "title"):
+                        result["title"] = self.formatString(event.title)
 
                     ## 番組概要
-                    if hasattr(event, 'desc'):
-                        result['description'] = self.formatString(event.desc)
+                    if hasattr(event, "desc"):
+                        result["description"] = self.formatString(event.desc)
 
                     ## 番組詳細
-                    if hasattr(event, 'detail'):
-                        result['detail'] = {}
+                    if hasattr(event, "detail"):
+                        result["detail"] = {}
 
                         # 見出しと本文
                         for heading, text in event.detail.items():
-                            result['detail'][heading.replace('◇', '')] = self.formatString(text)  # ◇ を取り除く
+                            result["detail"][heading.replace("◇", "")] = self.formatString(text)  # ◇ を取り除く
 
                             # 番組概要が空の場合、番組詳細の最初の本文を概要として使う
                             # 空でまったく情報がないよりかは良いはず
-                            if result['description'].strip() == '':
-                                result['description'] = self.formatString(text)
+                            if result["description"].strip() == "":
+                                result["description"] = self.formatString(text)
 
                     ## 番組長
-                    if hasattr(event, 'duration'):
-                        result['duration'] = event.duration
+                    if hasattr(event, "duration"):
+                        result["duration"] = event.duration
 
                     ## 番組開始時刻・番組終了時刻
-                    if hasattr(event, 'start_time') and event.start_time is not None:
+                    if hasattr(event, "start_time") and event.start_time is not None:
                         # タイムゾーンを日本時間 (+9:00) に設定
-                        result['start_time'] = event.start_time.astimezone(timezone(timedelta(hours=9)))
+                        result["start_time"] = event.start_time.astimezone(timezone(timedelta(hours=9)))
                         # 番組終了時刻を start_time と duration から算出
-                        if result['duration'] is not None:
-                            result['end_time'] = result['start_time'] + result['duration']
+                        if result["duration"] is not None:
+                            result["end_time"] = result["start_time"] + result["duration"]
                         else:
-                            result['end_time'] = None  # 放送時間未定
+                            result["end_time"] = None  # 放送時間未定
 
                     ## 無料放送かどうか
-                    if hasattr(event, 'free_CA_mode'):
+                    if hasattr(event, "free_CA_mode"):
                         # ARIB TR-B15 第三分冊 (https://vs1p.manualzilla.com/store/data/006629648.pdf)
                         # free_CA_mode が 1 のとき有料番組、0 のとき無料番組だそう
                         # bool に変換した後、真偽を反転させる
-                        result['is_free'] = not bool(event.free_CA_mode)
+                        result["is_free"] = not bool(event.free_CA_mode)
 
                     ## ジャンル
-                    if hasattr(event, 'genre'):
-                        result['genre'] = []
+                    if hasattr(event, "genre"):
+                        result["genre"] = []
                         for index, _ in enumerate(event.genre):  # ジャンルごとに
-
                             # major … 大分類
                             # middle … 中分類
                             genre_dict = {
-                                'major': event.genre[index].replace('／', '・'),
-                                'middle': event.subgenre[index].replace('／', '・'),
+                                "major": event.genre[index].replace("／", "・"),
+                                "middle": event.subgenre[index].replace("／", "・"),
                             }
 
                             # BS/地上デジタル放送用番組付属情報がジャンルに含まれている場合、user_nibble から値を取得して書き換える
                             # たとえば「中止の可能性あり」や「延長の可能性あり」といった情報が取れる
-                            if genre_dict['major'] == '拡張':
-                                if genre_dict['middle'] == 'BS/地上デジタル放送用番組付属情報':
-                                    genre_dict['middle'] = event.user_genre[index]
+                            if genre_dict["major"] == "拡張":
+                                if genre_dict["middle"] == "BS/地上デジタル放送用番組付属情報":
+                                    genre_dict["middle"] = event.user_genre[index]
                                 # 「拡張」はあるがBS/地上デジタル放送用番組付属情報でない場合はなんの値なのかわからないのでパス
                                 else:
                                     continue
 
                             # ジャンルを追加
-                            result['genre'].append(genre_dict)
+                            result["genre"].append(genre_dict)
 
-                    def all_not_none(iterable):
-                        """リスト内の要素が全て None でないなら True を返す"""
-                        for element in iterable:
-                            if element is None:
-                                return False
-                        return True
+                    ## 映像情報
+                    if hasattr(event, "video"):
+                        result["video"]["type"] = event.video
+                    if hasattr(event, "video_component"):
+                        result["video"]["resolution"] = self.COMPONENT_TYPE[int(hex(event.video_component), 16)]
 
                     # 全て取得できたら抜ける
                     # 一つの EIT に全ての情報が含まれているとは限らないため
-                    if all_not_none(result.values()):
+                    if any([v is not None for v in result.values()]):
                         break
 
                 else:  # 多重ループを抜けるトリック
@@ -339,10 +354,10 @@ class TsInformation:
             # ループが 100 回を超えたら、番組詳細とジャンルの初期値を設定する
             # 稀に番組詳細やジャンルが全く設定されていない番組があり、存在しない情報を探して延々とループするのを避けるため
             if count > 100:
-                if result['detail'] is None:
-                    result['detail'] = {}
-                if result['genre'] is None:
-                    result['genre'] = []
+                if result["detail"] is None:
+                    result["detail"] = {}
+                if result["genre"] is None:
+                    result["genre"] = []
 
             # ループが 1000 回を超えたら（＝10回シークしても放送時間が確定しなかったら）、タイムアウトでループを抜ける
             if count > 1000:
@@ -372,17 +387,17 @@ class TsInformation:
 
         # 地上デジタルテレビジョン放送 (network_id: 30848 ~ 32744)
         if network_id >= 0x7880 and network_id <= 0x7FE8:
-            return 'GR'
+            return "GR"
 
         # BSデジタル放送
         if network_id == 0x0004:
-            return 'BS'
+            return "BS"
 
         # 110度CSデジタル放送
         # CS1: 0x0006 (旧プラット・ワン系)
         # CS2: 0x0007 (旧スカイパーフェクTV!2系)
         if network_id == 0x0006 or network_id == 0x0007:
-            return 'CS'
+            return "CS"
 
         # ケーブルテレビ (リマックス方式・トランスモジュレーション方式)
         # ケーブルテレビ独自のチャンネルのみで、地上波・BS の再送信は含まない
@@ -391,21 +406,21 @@ class TsInformation:
         # JC-HITSトランスモジュレーション: 0xFFFD (HD・SD チャンネル (MPEG-2))
         # 高度JC-HITSトランスモジュレーション: 0xFFF9 (ケーブル4Kチャンネル (H.264, H.265))
         if network_id == 0xFFFE or network_id == 0xFFFA or network_id == 0xFFFD or network_id == 0xFFF9:
-            return 'CATV'
+            return "CATV"
 
         # 124/128度CSデジタル放送
         # SPHD: 0x000A (スカパー！プレミアムサービス)
         # SPSD-SKY: 0x0003 (運用終了)
         if network_id == 0x000A or network_id == 0x0003:
-            return 'SKY'
+            return "SKY"
 
         # 124/128度CSデジタル放送
         # SPSD-PerfecTV: 0x0001 (スターデジオ)
         if network_id == 1:
-            return 'STARDIGIO'
+            return "STARDIGIO"
 
         # 不明なネットワーク ID のチャンネル
-        return 'OTHER'
+        return "OTHER"
 
     def formatString(self, string: Union[str, AribString]) -> str:
         """
@@ -436,30 +451,30 @@ class TsInformation:
 
         # 全角英数を半角英数に置換
         # ref: https://github.com/ikegami-yukino/jaconv/blob/master/jaconv/conv_table.py
-        zenkaku_table = '０１２３４５６７８９ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ'
-        hankaku_table = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+        zenkaku_table = "０１２３４５６７８９ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ"
+        hankaku_table = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
         merged_table = dict(zip(list(zenkaku_table), list(hankaku_table)))
 
         # 全角記号を半角記号に置換
-        synbol_zenkaku_table = '＂＃＄％＆＇（）＋，－．／：；＜＝＞［＼］＾＿｀｛｜｝　'
-        synbol_hankaku_table = '"#$%&\'()+,-./:;<=>[\\]^_`{|} '
+        synbol_zenkaku_table = "＂＃＄％＆＇（）＋，－．／：；＜＝＞［＼］＾＿｀｛｜｝　"
+        synbol_hankaku_table = "\"#$%&'()+,-./:;<=>[\\]^_`{|} "
         merged_table.update(zip(list(synbol_zenkaku_table), list(synbol_hankaku_table)))
         merged_table.update(
             {
                 # 一部の半角記号を全角に置換
                 # 主に見栄え的な問題（全角の方が字面が良い）
-                '!': '！',
-                '?': '？',
-                '*': '＊',
-                '~': '～',
-                '@': '＠',
+                "!": "！",
+                "?": "？",
+                "*": "＊",
+                "~": "～",
+                "@": "＠",
                 # シャープ → ハッシュ
-                '♯': '#',
+                "♯": "#",
                 # 波ダッシュ → 全角チルダ
                 ## EDCB は ～ を全角チルダとして扱っているため、KonomiTV でもそのように統一する
                 ## TODO: 番組検索を実装する際は検索文字列の波ダッシュを全角チルダに置換する下処理が必要
                 ## ref: https://qiita.com/kasei-san/items/3ce2249f0a1c1af1cbd2
-                '〜': '～',
+                "〜": "～",
             }
         )
 
@@ -467,39 +482,39 @@ class TsInformation:
         # ref: https://note.nkmk.me/python-chr-ord-unicode-code-point/
         # ref: https://github.com/l3tnun/EPGStation/blob/v2.6.17/src/util/StrUtil.ts#L7-L46
         enclosed_characters_table = {
-            '\U0001f14a': '[HV]',
-            '\U0001f13f': '[P]',
-            '\U0001f14c': '[SD]',
-            '\U0001f146': '[W]',
-            '\U0001f14b': '[MV]',
-            '\U0001f210': '[手]',
-            '\U0001f211': '[字]',
-            '\U0001f212': '[双]',
-            '\U0001f213': '[デ]',
-            '\U0001f142': '[S]',
-            '\U0001f214': '[二]',
-            '\U0001f215': '[多]',
-            '\U0001f216': '[解]',
-            '\U0001f14d': '[SS]',
-            '\U0001f131': '[B]',
-            '\U0001f13d': '[N]',
-            '\U0001f217': '[天]',
-            '\U0001f218': '[交]',
-            '\U0001f219': '[映]',
-            '\U0001f21a': '[無]',
-            '\U0001f21b': '[料]',
-            '\U0001f21c': '[前]',
-            '\U0001f21d': '[後]',
-            '\U0001f21e': '[再]',
-            '\U0001f21f': '[新]',
-            '\U0001f220': '[初]',
-            '\U0001f221': '[終]',
-            '\U0001f222': '[生]',
-            '\U0001f223': '[販]',
-            '\U0001f224': '[声]',
-            '\U0001f225': '[吹]',
-            '\U0001f14e': '[PPV]',
-            '\U0001f200': '[ほか]',
+            "\U0001f14a": "[HV]",
+            "\U0001f13f": "[P]",
+            "\U0001f14c": "[SD]",
+            "\U0001f146": "[W]",
+            "\U0001f14b": "[MV]",
+            "\U0001f210": "[手]",
+            "\U0001f211": "[字]",
+            "\U0001f212": "[双]",
+            "\U0001f213": "[デ]",
+            "\U0001f142": "[S]",
+            "\U0001f214": "[二]",
+            "\U0001f215": "[多]",
+            "\U0001f216": "[解]",
+            "\U0001f14d": "[SS]",
+            "\U0001f131": "[B]",
+            "\U0001f13d": "[N]",
+            "\U0001f217": "[天]",
+            "\U0001f218": "[交]",
+            "\U0001f219": "[映]",
+            "\U0001f21a": "[無]",
+            "\U0001f21b": "[料]",
+            "\U0001f21c": "[前]",
+            "\U0001f21d": "[後]",
+            "\U0001f21e": "[再]",
+            "\U0001f21f": "[新]",
+            "\U0001f220": "[初]",
+            "\U0001f221": "[終]",
+            "\U0001f222": "[生]",
+            "\U0001f223": "[販]",
+            "\U0001f224": "[声]",
+            "\U0001f225": "[吹]",
+            "\U0001f14e": "[PPV]",
+            "\U0001f200": "[ほか]",
         }
 
         # Unicode の囲み文字を大かっこで囲った文字に置換する
@@ -559,7 +574,8 @@ class TsInformation:
             for packet in self.ts:
                 # packet から Adaptation Field を取得
                 adaptation = adaptation_field(packet)
-                if (adaptation == b''): continue
+                if adaptation == b"":
+                    continue
 
                 # PCR が存在する場合のみ
                 if adaptation.with_PCR is not None:

@@ -5,7 +5,10 @@ import sys
 from datetime import datetime, timedelta
 from os.path import expanduser
 from pathlib import Path
+from traceback import print_exc
 from typing import Iterator
+
+import av
 
 from movie_scripts.register_encode.ts_information import TsInformation
 
@@ -44,21 +47,29 @@ class RegisterEncode:
                     continue
 
                 try:
-                    ts_info = TsInformation(str(file)).extract()
-                    title = ts_info.get("program", {}).get("title", "")
+                    with av.open(file) as container:
+                        for stream in container.streams:
+                            print(f"{stream.index: ,}, {stream.id}, name:{stream.name}, ")
+                        print(f"video flame count: {len(container.streams.video)}")
+                        print(f"video flame dimension: {container.streams.video[0].width}x{container.streams.video[0].height}")
+                        video_width = container.streams.video[0].width
 
-                    print("origin: {}".format(title))
+                    with TsInformation(str(file)) as ts_info:
+                        title = ts_info.get("program", {}).get("title", "")
 
-                    rel = file.relative_to(search_root)
-                    win_path = movie_root.joinpath(rel)
+                        rel = file.relative_to(search_root)
+                        win_path = movie_root.joinpath(rel)
 
                     yield win_path, output_base, ts_info, self.get_profile(
-                        file, ts_info.get("channel"), ts_info.get("program")
+                        file, ts_info.get("channel"), ts_info.get("program"), video_width == 1920
                     )
+                    print(str(file))
+                    print("   title: {}".format(title))
                 except IndexError:
                     print("エラーが発生しました。スキップします: {}".format(str(file)))
+                    print_exc()
 
-    def get_profile(self, file: Path, channel: dict, program: dict):
+    def get_profile(self, file: Path, channel: dict, program: dict, is_full_hd: bool):
         network_id = channel.get("network_id", 0)
         filename = file.name
 
@@ -69,9 +80,7 @@ class RegisterEncode:
                 return "デフォルト(アニメ-ATX分割)"
             elif re.search(r"#[0-9]+,[0-9]+", filename) is not None:
                 return "デフォルト(アニメ-ATX分割)"
-            elif (
-                "水星の魔女" in filename or "推しの子" in filename or "青春ブタ野郎" in filename or channel.get("channel_type") == "BS"
-            ):
+            elif is_full_hd:
                 return "デフォルト(アニメ) 810p"
             else:
                 return "デフォルト(アニメ)"
@@ -85,7 +94,8 @@ def run():
 async def _run():
     proc_list = []
     for _ts_name, _out_dir, _ts_info, _profile in RegisterEncode().search_ts():
-        proc_list.append(start_subprocess(use_mono=use_mono, file=_ts_name, out_dir=_out_dir, profile=_profile))
+        task = asyncio.create_task(start_subprocess(use_mono=use_mono, file=_ts_name, out_dir=_out_dir, profile=_profile))
+        proc_list.append(task)
 
     await asyncio.gather(*proc_list)
 
@@ -121,4 +131,5 @@ async def start_subprocess(use_mono: bool, file: Path, out_dir: Path, profile: s
 
 
 if __name__ == "__main__":
+    av.logging.set_level(av.logging.FATAL)
     asyncio.run(_run())
