@@ -125,9 +125,7 @@ async def start_subprocess(use_mono: bool, file: Path, out_dir: Path, profile: s
     proc = await asyncio.create_subprocess_exec(
         cmd[0], *cmd[1:], stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
     )
-    stdout, stderr = await proc.communicate()
-
-    print(cmd)
+    return await proc.communicate()
 
 
 if __name__ == "__main__":
