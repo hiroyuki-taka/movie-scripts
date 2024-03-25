@@ -1,8 +1,9 @@
 import asyncio
+import logging
 import re
 import urllib.parse
 from collections import defaultdict
-from dataclasses import dataclass, Field, field
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
@@ -75,8 +76,39 @@ class P:
     start: datetime
     end: datetime
 
+    FirstYear: int
+    FirstMonth: int
+
     TitleYomi: str
     TID: str
+
+    @property
+    def q_season(self):
+        return f"{self.y}{self.q}"
+
+    @property
+    def y(self):
+        if self.FirstYear == 0 or self.FirstMonth == 0:
+            return "9999"
+        else:
+            return f"{self.FirstYear:04}"
+
+    @property
+    def q(self):
+        if self.FirstYear == 0 or self.FirstMonth == 0:
+            return "0Q"
+
+        match self.FirstMonth:
+            case 1 | 2 | 3:
+                return "1Q"
+            case 4 | 5 | 6:
+                return "2Q"
+            case 7 | 8 | 9:
+                return "3Q"
+            case 10 | 11 | 12:
+                return "4Q"
+            case _:
+                return "0Q"
 
 
 class SyoboiClient:
@@ -92,6 +124,7 @@ class SyoboiClient:
             try:
                 result = defaultdict(list)
 
+                logging.log(level=logging.INFO, msg="call syobocal", extra=parameter_dict)
                 async with self.session.get(
                     f"https://cal.syoboi.jp/json?{urllib.parse.urlencode(parameter_dict)}"
                 ) as response:
@@ -131,6 +164,8 @@ class SyoboiClient:
                                 "TitleYomi": title.TitleYomi,
                                 "SubTitle": title.subtitles.get(program.Count, ""),
                                 "TID": program.TID,
+                                "FirstYear": int(title.FirstYear) if title.FirstYear else 0,
+                                "FirstMonth": int(title.FirstMonth) if title.FirstMonth else 0,
                             }
                             result[program.ChID].append(P(**p_dict))
                 for l in result.values():
