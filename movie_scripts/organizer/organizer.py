@@ -137,24 +137,28 @@ async def run():
                     new_base_name = f"[{log_file.get('ch_id')}] #{count:02} {sub_title}-{log_file.get('date')}"
 
                     print("------------------------------")
+                    # ディレクトリ作成しておく
+                    move_to = store_root / new_title / f"{new_base_name}{ext}"
+                    print(f"mkdir: {move_to.parent}")
+                    os.makedirs(move_to.parent, exist_ok=True)
+
+                    initial_path = initial_root / program.TitleInitial
+                    print(f"mkdir: {initial_path}")
+                    os.makedirs(initial_path, exist_ok=True)
+
+                    season_path = season_root / program.y / program.q
+                    print(f"mkdir: {season_path}")
+                    os.makedirs(season_path, exist_ok=True)
+
                     # allに移動
                     for ext, file in group_files.items():
-                        move_to = store_root / new_title / f"{new_base_name}{ext}"
-                        print(f"mkdir: {move_to.parent}")
-                        os.makedirs(move_to.parent, exist_ok=True)
                         print(f"move: {file}")
                         print(f"  -> {move_to}")
 
                     # initialにリンク作成
-                    initial_path = initial_root / program.TitleInitial
-                    print(f"mkdir: {initial_path}")
-                    os.makedirs(initial_path, exist_ok=True)
                     print(f"link: {initial_path / new_title} -> {store_root / new_title}")
 
                     # seasonにリンク作成
-                    season_path = season_root / program.y / program.q
-                    print(f"mkdir: {season_path}")
-                    os.makedirs(season_path, exist_ok=True)
                     print(f"link: {season_path / new_title} -> {store_root / new_title}")
             finally:
                 q.task_done()
