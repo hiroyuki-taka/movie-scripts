@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from datetime import datetime
 from enum import Enum
 from functools import cache
+from traceback import print_exc
 from typing import Final, TypedDict
 from zoneinfo import ZoneInfo
 
@@ -14,12 +15,13 @@ import aiohttp
 
 from movie_scripts.organizer.syoboi_client import SyoboiClient
 
-encoded_root: Final[pathlib.Path] = pathlib.Path("V:\\movie_recorded\\out")
-initial_root: Final[pathlib.Path] = pathlib.Path("V:\\movie2\\Initial")
-store_root: Final[pathlib.Path] = pathlib.Path("V:\\movie2\\All")
-season_root: Final[pathlib.Path] = pathlib.Path("V:\\movie2\\Season")
+encoded_root: Final[pathlib.Path] = pathlib.Path("/srv/movie_recorded/out")
+initial_root: Final[pathlib.Path] = pathlib.Path("/srv/movie2/Initial")
+store_root: Final[pathlib.Path] = pathlib.Path("/srv/movie2/All")
+season_root: Final[pathlib.Path] = pathlib.Path("/srv/movie2/Season")
 
 
+# https://cal.syoboi.jp/mng?Action=ShowChList
 class Channel(Enum):
     C27 = (1, "NHK総合")
     C26 = (2, "NHK Eテレ")
@@ -35,6 +37,7 @@ class Channel(Enum):
     BS01_1 = (16, "BS-TBS")
     BS13_1 = (17, "BSフジ")
     BS01_0 = (18, "BS朝日")
+    BS13_0 = (71, "BS日テレ")
     C16 = (19, "TOKYO MX")
     CS16 = (20, "AT-X")
     BS09_0 = (128, "BS11")
@@ -56,9 +59,9 @@ class ParsedFileName(TypedDict):
 
 
 def log_file_list() -> Iterator[ParsedFileName]:
-    for path in encoded_root.glob("**/*-enc.log"):
+    for path in encoded_root.glob("**/*-enc.*"):
         if m := re.match(
-            r"(?P<basename>\[(?P<ch_id>\w+)]-(?P<title>.*)-(?P<date>(?P<y>\d{4})年(?P<m>\d{2})月(?P<d>\d{2})日(?P<hh>\d{2})時(?P<mm>\d{2})分))-enc\.log$",
+            r"(?P<basename>\[(?P<ch_id>\w+)]-(?P<title>.*)-(?P<date>(?P<y>\d{4})年(?P<m>\d{2})月(?P<d>\d{2})日(?P<hh>\d{2})時(?P<mm>\d{2})分))-enc\.(log|LOG)$",
             path.name,
         ):
             yield ParsedFileName(**({"path": path} | m.groupdict()))
@@ -71,18 +74,31 @@ def encoded_files():
                 continue
             yield os.path.join(dirname, filename)
 
+def ensure_windows_filename_compatibility(filename: str) -> str:
+    replace_pattern = [
+        ("!", "！"),
+        ("?", "？"),
+        ("<", "＜"),
+        (">", "＞"),
+        (":", "："),
+        ("\\", "￥"),
+        ("/", "／"),
+        ("*", "＊"),
+        ("|", "｜"),
+    ]
+    p0 = "".join([p[0] for p in replace_pattern])
+    p1 = "".join([p[1] for p in replace_pattern])
 
-def find_related_file(path: pathlib.Path, basename: str):
-    print(f"  root={path.parent}, pattern={basename.replace('[', '[[]')}")
-    for p in path.parent.glob(f"{basename.replace('[', '[[]')}"):
-        print(p)
-    return {
-        path.name.removeprefix(basename): path
-        for path in [p for p in path.parent.glob("*") if p.name.startswith(basename)]
-    }
+    # 前後のスペース削除
+    p = filename.strip(" \u3000")
+    # 連続スペースをまとめる
+    p = re.sub(r"[ \u3000]+", " ", p)
+    # 使用不可文字を置換
+    p = "".join([c if (i := p0.find(c)) and i == -1 else p1[i] for c in p])
 
+    return p
 
-async def run():
+async def _run():
     _filename: ParsedFileName
     file_queue = asyncio.Queue()
 
@@ -131,16 +147,16 @@ async def run():
             try:
                 program = await find_program(log_file.get("ch_id"), broadcast_date=broadcast_date)
                 if program is not None and (count := program.Count) is not None:
-                    title = program.Title
-                    sub_title = program.SubTitle
+                    title = ensure_windows_filename_compatibility(program.Title)
+                    sub_title = ensure_windows_filename_compatibility(program.SubTitle)
                     new_title = f"{program.q_season} {title}"
                     new_base_name = f"[{log_file.get('ch_id')}] #{count:02} {sub_title}-{log_file.get('date')}"
 
                     print("------------------------------")
                     # ディレクトリ作成しておく
-                    move_to = store_root / new_title / f"{new_base_name}{ext}"
-                    print(f"mkdir: {move_to.parent}")
-                    os.makedirs(move_to.parent, exist_ok=True)
+                    all_path = store_root / new_title
+                    print(f"mkdir: {all_path}")
+                    os.makedirs(all_path, exist_ok=True)
 
                     initial_path = initial_root / program.TitleInitial
                     print(f"mkdir: {initial_path}")
@@ -150,16 +166,25 @@ async def run():
                     print(f"mkdir: {season_path}")
                     os.makedirs(season_path, exist_ok=True)
 
+                    # initialにリンク作成
+                    if not (initial_path / new_title).exists():
+                        os.symlink(store_root / new_title, initial_path / new_title)
+                        print(f"link: {initial_path / new_title} -> {store_root / new_title}")
+
+                    # seasonにリンク作成
+                    if not (season_path / new_title).exists():
+                        os.symlink(store_root / new_title, season_path / new_title)
+                        print(f"link: {season_path / new_title} -> {store_root / new_title}")
+
                     # allに移動
                     for ext, file in group_files.items():
+                        move_to = all_path / f"{new_base_name}{ext}"
+                        os.rename(file, move_to)
                         print(f"move: {file}")
                         print(f"  -> {move_to}")
 
-                    # initialにリンク作成
-                    print(f"link: {initial_path / new_title} -> {store_root / new_title}")
-
-                    # seasonにリンク作成
-                    print(f"link: {season_path / new_title} -> {store_root / new_title}")
+            except Exception as e:
+                print_exc()
             finally:
                 q.task_done()
 
@@ -171,7 +196,6 @@ async def run():
 
         tasks = []
         tasks.append(asyncio.create_task(_q1(file_queue, syoboi_client)))
-        # tasks.append(asyncio.create_task(_p1(file_queue)))
 
         await file_queue.join()
 
@@ -181,8 +205,12 @@ async def run():
         await asyncio.gather(*tasks, return_exceptions=True)
 
 
-if __name__ == "__main__":
+def run():
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    asyncio.run(run())
+    asyncio.run(_run())
+
+
+if __name__ == "__main__":
+    run()
